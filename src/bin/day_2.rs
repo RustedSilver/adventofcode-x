@@ -55,6 +55,10 @@ impl KubeSetColors {
             && self.green.unwrap_or_default() <= green
             && self.blue.unwrap_or_default() <= blue
     }
+
+    fn power(&self) -> u32 {
+        self.red.unwrap_or(1) * self.green.unwrap_or(1) * self.blue.unwrap_or(1)
+    }
 }
 
 impl Game {
@@ -94,10 +98,52 @@ impl Game {
         }
         true
     }
+
+    fn min_kubes_to_play_game(&self) -> KubeSetColors {
+        let (mut min_red, mut min_green, mut min_blue) = (0, 0, 0);
+
+        self.configuration
+            .iter()
+            .map(|c| {
+                (
+                    c.red.unwrap_or_default(),
+                    c.green.unwrap_or_default(),
+                    c.blue.unwrap_or_default(),
+                )
+            })
+            .for_each(|(red, green, blue)| {
+                if min_red < red {
+                    min_red = red;
+                }
+
+                if min_blue < blue {
+                    min_blue = blue;
+                }
+
+                if min_green < green {
+                    min_green = green;
+                }
+            });
+
+        KubeSetColors {
+            red: Some(min_red),
+            blue: Some(min_blue),
+            green: Some(min_green),
+        }
+    }
 }
 
-fn main() {
-    // https://adventofcode.com/2023/day/2
+fn part_two() {
+    let sum: u32 = fs::read_to_string("assets/game_puzzle_input")
+        .expect("file should exists")
+        .lines()
+        .map(|l| Game::from(l).min_kubes_to_play_game().power())
+        .sum();
+
+    println!("Part 2 :: Sum : {}", sum);
+}
+
+fn part_one() {
     // let colors = (9, 16, 5);
     let colors = (12, 14, 13);
     let sum: u32 = fs::read_to_string("assets/game_puzzle_input")
@@ -108,8 +154,14 @@ fn main() {
         .map(|g| g.id)
         .sum();
 
-    println!("Sum is: {}", sum);
+    println!("Part 1 :: Sum: {}", sum);
     assert_eq!(2204, sum);
+}
+
+fn main() {
+    // https://adventofcode.com/2023/day/2
+    part_one();
+    part_two();
 }
 
 #[cfg(test)]
@@ -136,5 +188,17 @@ mod test {
         let game = Game::from("Game 2: 16 blue, 9 red, 5 green; 8 red; 8 blue, 5 green, 12 red; 11 blue, 8 green, 17 red");
 
         assert!(!game.contains_set_colors((29, 3, 12)));
+    }
+
+    #[test]
+    fn min_collection_of_kubes_to_play_game() {
+        let game =
+            Game::from("Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red");
+
+        let set_color = game.min_kubes_to_play_game();
+
+        assert_eq!(Some(20), set_color.red);
+        assert_eq!(Some(13), set_color.green);
+        assert_eq!(Some(6), set_color.blue);
     }
 }
